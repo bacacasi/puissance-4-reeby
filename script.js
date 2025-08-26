@@ -93,6 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let moveCol;
         const aiLevel = trophyCount;
 
+        // Level 1+: Offensive move
         if (aiLevel >= 1) {
             const winningMove = findBestMove(2);
             if (winningMove !== -1) {
@@ -100,6 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        // Level 2+: Defensive move
         if (moveCol === undefined && aiLevel >= 2) {
             const blockingMove = findBestMove(1);
             if (blockingMove !== -1) {
@@ -107,6 +109,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        // Level 10+: Strategic move (center preference)
+        if (moveCol === undefined && aiLevel >= 10) {
+            const centerCols = [3, 4, 2, 5, 1, 6, 0];
+            for (const col of centerCols) {
+                if (getNextAvailableRow(col) !== -1) {
+                    moveCol = col;
+                    break;
+                }
+            }
+        }
+
+        // Level 0 or no other move found: Random move
         if (moveCol === undefined) {
             let availableCols = [];
             for (let col = 0; col < cols; col++) {

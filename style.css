@@ -16,6 +16,12 @@ body {
     text-align: center;
 }
 
+#trophy-counter {
+    font-size: 1.5em;
+    color: #6c757d;
+    margin-bottom: 20px;
+}
+
 h1 {
     color: #333;
     font-size: 3em;

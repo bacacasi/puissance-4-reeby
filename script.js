@@ -5,14 +5,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const gameBoard = document.getElementById('game-board');
     const message = document.getElementById('message');
     const restartButton = document.getElementById('restart-button');
+    const trophyCounter = document.getElementById('trophy-counter');
 
     const rows = 6;
     const cols = 7;
     let board = [];
     let currentPlayer = 1; // 1 for player, 2 for AI
     let gameOver = false;
+    let trophyCount = 0;
+
+    function loadTrophies() {
+        trophyCount = parseInt(localStorage.getItem('trophyCount')) || 0;
+        updateTrophyDisplay();
+    }
+
+    function updateTrophyDisplay() {
+        trophyCounter.textContent = `🏆 ${trophyCount}`;
+    }
 
     function showMainMenu() {
+        updateTrophyDisplay();
         gameContainer.classList.add('hidden');
         mainMenu.classList.remove('hidden');
     }
@@ -44,6 +56,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (checkWin(currentPlayer)) {
             endGame(`Vous avez gagné !`);
+            trophyCount++;
+            localStorage.setItem('trophyCount', trophyCount);
             setTimeout(showMainMenu, 2000); // Return to main menu after 2 seconds
         } else if (checkDraw()) {
             endGame("Match nul !");
@@ -171,6 +185,8 @@ document.addEventListener('DOMContentLoaded', () => {
         restartGame();
     }
 
+    // Initial load
+    loadTrophies();
     playButton.addEventListener('click', startGame);
     restartButton.addEventListener('click', restartGame);
 

@@ -12,6 +12,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPlayer = 1; // 1 for player, 2 for AI
     let gameOver = false;
 
+    function showMainMenu() {
+        gameContainer.classList.add('hidden');
+        mainMenu.classList.remove('hidden');
+    }
+
     function createBoard() {
         gameBoard.innerHTML = '';
         board = [];
@@ -39,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (checkWin(currentPlayer)) {
             endGame(`Vous avez gagné !`);
+            setTimeout(showMainMenu, 2000); // Return to main menu after 2 seconds
         } else if (checkDraw()) {
             endGame("Match nul !");
         } else {

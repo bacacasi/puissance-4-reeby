@@ -8,12 +8,34 @@ body {
     margin: 0;
 }
 
-#game-container {
+.hidden {
+    display: none;
+}
+
+#main-menu, #game-container {
     text-align: center;
 }
 
 h1 {
     color: #333;
+    font-size: 3em;
+    margin-bottom: 30px;
+}
+
+#play-button {
+    padding: 15px 40px;
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #fff;
+    background-color: #28a745; /* A green color for play */
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#play-button:hover {
+    background-color: #218838;
 }
 
 #game-board {
@@ -25,6 +47,7 @@ h1 {
     padding: 10px;
     border-radius: 10px;
     box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
+    margin: 0 auto; /* Center the board in its container */
 }
 
 .cell {

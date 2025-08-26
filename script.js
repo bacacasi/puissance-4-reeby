@@ -1,4 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const mainMenu = document.getElementById('main-menu');
+    const gameContainer = document.getElementById('game-container');
+    const playButton = document.getElementById('play-button');
     const gameBoard = document.getElementById('game-board');
     const message = document.getElementById('message');
     const restartButton = document.getElementById('restart-button');
@@ -35,9 +38,9 @@ document.addEventListener('DOMContentLoaded', () => {
         dropPiece(row, col, currentPlayer);
 
         if (checkWin(currentPlayer)) {
-            endGame(`You win!`);
+            endGame(`Vous avez gagné !`);
         } else if (checkDraw()) {
-            endGame("It's a draw!");
+            endGame("Match nul !");
         } else {
             switchPlayer();
             setTimeout(aiMove, 500); // AI's turn after a short delay
@@ -60,9 +63,9 @@ document.addEventListener('DOMContentLoaded', () => {
         dropPiece(row, randomCol, currentPlayer);
 
         if (checkWin(currentPlayer)) {
-            endGame(`AI wins!`);
+            endGame(`L'IA a gagné !`);
         } else if (checkDraw()) {
-            endGame("It's a draw!");
+            endGame("Match nul !");
         } else {
             switchPlayer();
         }
@@ -85,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function switchPlayer() {
         currentPlayer = currentPlayer === 1 ? 2 : 1;
-        message.textContent = currentPlayer === 1 ? "Your turn" : "AI's turn";
+        message.textContent = currentPlayer === 1 ? "Votre tour" : "Tour de l'IA";
     }
 
     function checkWin(player) {
@@ -152,12 +155,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function restartGame() {
         gameOver = false;
         currentPlayer = 1;
-        message.textContent = "Your turn";
+        message.textContent = "Votre tour";
         createBoard();
     }
 
+    function startGame() {
+        mainMenu.classList.add('hidden');
+        gameContainer.classList.remove('hidden');
+        restartGame();
+    }
+
+    playButton.addEventListener('click', startGame);
     restartButton.addEventListener('click', restartGame);
 
-    // Initial setup
-    restartGame();
 });

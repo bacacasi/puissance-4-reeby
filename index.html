@@ -1,18 +1,24 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connect 4</title>
+    <title>Puissance 4</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="game-container">
-        <h1>Connect 4</h1>
+
+    <div id="main-menu">
+        <h1>Puissance 4</h1>
+        <button id="play-button">Jouer</button>
+    </div>
+
+    <div id="game-container" class="hidden">
         <div id="game-board"></div>
         <div id="message"></div>
-        <button id="restart-button">Restart</button>
+        <button id="restart-button">Recommencer</button>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>

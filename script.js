@@ -19,11 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const testAiMove = urlParams.get('testAiMove');
     // ----------------------
 
-    function loadTrophies() {
-        trophyCount = parseInt(localStorage.getItem('trophyCount')) || 0;
-        updateTrophyDisplay();
-    }
-
     function updateTrophyDisplay() {
         trophyCounter.textContent = `🏆 ${trophyCount}`;
     }
@@ -62,7 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (checkWin(currentPlayer)) {
             endGame(`Vous avez gagné !`);
             trophyCount++;
-            localStorage.setItem('trophyCount', trophyCount);
             setTimeout(showMainMenu, 2000); // Return to main menu after 2 seconds
         } else if (checkDraw()) {
             endGame("Match nul !");
@@ -94,7 +88,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (checkWin(currentPlayer)) {
             endGame(`L'IA a gagné !`);
             trophyCount = Math.max(0, trophyCount - 1); // Prevents going below 0
-            localStorage.setItem('trophyCount', trophyCount);
             setTimeout(showMainMenu, 2000); // Return to main menu after 2 seconds
         } else if (checkDraw()) {
             endGame("Match nul !");
@@ -198,7 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Initial load
-    loadTrophies();
+    updateTrophyDisplay(); // Display initial count of 0
     playButton.addEventListener('click', startGame);
     restartButton.addEventListener('click', restartGame);
 

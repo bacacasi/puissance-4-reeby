@@ -14,6 +14,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let gameOver = false;
     let trophyCount = 0;
 
+    // --- Testability Hook ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const testAiMove = urlParams.get('testAiMove');
+    // ----------------------
+
     function loadTrophies() {
         trophyCount = parseInt(localStorage.getItem('trophyCount')) || 0;
         updateTrophyDisplay();
@@ -70,20 +75,27 @@ document.addEventListener('DOMContentLoaded', () => {
     function aiMove() {
         if (gameOver || currentPlayer !== 2) return;
 
-        let availableCols = [];
-        for (let col = 0; col < cols; col++) {
-            if (getNextAvailableRow(col) !== -1) {
-                availableCols.push(col);
+        let moveCol;
+        if (testAiMove !== null && getNextAvailableRow(parseInt(testAiMove)) !== -1) {
+            moveCol = parseInt(testAiMove);
+        } else {
+            let availableCols = [];
+            for (let col = 0; col < cols; col++) {
+                if (getNextAvailableRow(col) !== -1) {
+                    availableCols.push(col);
+                }
             }
+            moveCol = availableCols[Math.floor(Math.random() * availableCols.length)];
         }
 
-        const randomCol = availableCols[Math.floor(Math.random() * availableCols.length)];
-        const row = getNextAvailableRow(randomCol);
-
-        dropPiece(row, randomCol, currentPlayer);
+        const row = getNextAvailableRow(moveCol);
+        dropPiece(row, moveCol, currentPlayer);
 
         if (checkWin(currentPlayer)) {
             endGame(`L'IA a gagné !`);
+            trophyCount = Math.max(0, trophyCount - 1); // Prevents going below 0
+            localStorage.setItem('trophyCount', trophyCount);
+            setTimeout(showMainMenu, 2000); // Return to main menu after 2 seconds
         } else if (checkDraw()) {
             endGame("Match nul !");
         } else {

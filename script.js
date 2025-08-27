@@ -84,16 +84,25 @@ document.addEventListener('DOMContentLoaded', () => {
     function aiMove() {
         if (gameOver || currentPlayer !== AI_PLAYER) return;
 
-        let depth = 1;
-        if (trophyCount >= 15) {
-            depth = 4;
-        } else if (trophyCount >= 10) {
-            depth = 3;
-        } else if (trophyCount >= 5) {
-            depth = 2;
+        let moveCol;
+
+        if (trophyCount >= 10) {
+            const depth = (trophyCount >= 15) ? 4 : 3;
+            moveCol = findBestMoveWithMinimax(depth);
+        } else {
+            const winningMove = (trophyCount >= 2) ? findOneMoveWin(AI_PLAYER) : -1;
+            const blockingMove = (trophyCount >= 5) ? findOneMoveWin(HUMAN_PLAYER) : -1;
+
+            if (winningMove !== -1) {
+                moveCol = winningMove;
+            } else if (blockingMove !== -1) {
+                moveCol = blockingMove;
+            } else {
+                let availableCols = getValidLocations();
+                moveCol = availableCols[Math.floor(Math.random() * availableCols.length)];
+            }
         }
 
-        const moveCol = findBestMoveWithMinimax(depth);
         const row = getNextAvailableRow(moveCol);
         dropPiece(row, moveCol, currentPlayer);
 
@@ -106,6 +115,21 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             switchPlayer();
         }
+    }
+
+    function findOneMoveWin(player) {
+        for (let col = 0; col < cols; col++) {
+            const row = getNextAvailableRow(col);
+            if (row !== -1) {
+                board[row][col] = player;
+                if (checkWin(player)) {
+                    board[row][col] = 0;
+                    return col;
+                }
+                board[row][col] = 0;
+            }
+        }
+        return -1;
     }
 
     function findBestMoveWithMinimax(depth) {
@@ -206,13 +230,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (playerCount === 4) {
             score += 1000;
         } else if (playerCount === 3 && emptyCount === 1) {
-            score += 10;
+            score += 5;
         } else if (playerCount === 2 && emptyCount === 2) {
             score += 2;
         }
 
         if (oppPlayerCount === 3 && emptyCount === 1) {
-            score -= 500;
+            score -= 50;
         } else if (oppPlayerCount === 2 && emptyCount === 2) {
             score -= 5;
         }

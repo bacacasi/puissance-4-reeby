@@ -87,13 +87,57 @@ document.addEventListener('DOMContentLoaded', () => {
         return -1;
     }
 
+    function findSetupMove(player) {
+        for (let col = 0; col < cols; col++) {
+            const row = getNextAvailableRow(col);
+            if (row !== -1) {
+                board[row][col] = player;
+                if (isCreatingThreat(row, col, player)) {
+                    board[row][col] = 0;
+                    return col;
+                }
+                board[row][col] = 0;
+            }
+        }
+        return -1;
+    }
+
+    function isCreatingThreat(r, c, player) {
+        // Horizontal
+        for (let i = 0; i <= 3; i++) {
+            const C = c - i;
+            if (C >= 0 && C <= cols - 4) {
+                if (board[r][C] === player && board[r][C+1] === player && board[r][C+2] === player) return true;
+            }
+        }
+        // Vertical
+        if (r <= rows - 3) {
+            if (board[r][c] === player && board[r+1][c] === player && board[r+2][c] === player) return true;
+        }
+        // Diagonal Down-Right
+        for (let i = 0; i <= 3; i++) {
+            const R = r - i, C = c - i;
+            if (R >= 0 && R <= rows - 4 && C >= 0 && C <= cols - 4) {
+                if (board[R][C] === player && board[R+1][C+1] === player && board[R+2][C+2] === player) return true;
+            }
+        }
+        // Diagonal Up-Right
+        for (let i = 0; i <= 3; i++) {
+            const R = r + i, C = c - i;
+            if (R >= 3 && R < rows && C >= 0 && C <= cols - 4) {
+                if (board[R][C] === player && board[R-1][C+1] === player && board[R-2][C+2] === player) return true;
+            }
+        }
+        return false;
+    }
+
     function aiMove() {
         if (gameOver || currentPlayer !== 2) return;
 
         let moveCol;
         const aiLevel = trophyCount;
 
-        // Level 1+: Offensive move
+        // Level 1+: Offensive move (Win)
         if (aiLevel >= 1) {
             const winningMove = findBestMove(2);
             if (winningMove !== -1) {
@@ -101,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Level 2+: Defensive move
+        // Level 2+: Defensive move (Block)
         if (moveCol === undefined && aiLevel >= 2) {
             const blockingMove = findBestMove(1);
             if (blockingMove !== -1) {
@@ -109,7 +153,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Level 10+: Strategic move (center preference)
+        // Level 15+: Setup move (Create a threat)
+        if (moveCol === undefined && aiLevel >= 15) {
+            const setupMove = findSetupMove(2);
+            if (setupMove !== -1) {
+                moveCol = setupMove;
+            }
+        }
+
+        // Level 10+: Strategic move (Center preference)
         if (moveCol === undefined && aiLevel >= 10) {
             const centerCols = [3, 4, 2, 5, 1, 6, 0];
             for (const col of centerCols) {

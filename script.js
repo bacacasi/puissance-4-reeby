@@ -17,12 +17,20 @@ document.addEventListener('DOMContentLoaded', () => {
     let gameOver = false;
     let trophyCount = 0;
 
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
     function updateTrophyDisplay() {
         trophyCounter.textContent = `🏆 ${trophyCount}`;
     }
 
     function showMainMenu() {
-        gameOver = true; // Ensure no more moves can be made
+        gameOver = true;
         updateTrophyDisplay();
         gameContainer.classList.add('hidden');
         mainMenu.classList.remove('hidden');
@@ -75,7 +83,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function aiMove() {
         if (gameOver || currentPlayer !== AI_PLAYER) return;
-        const depth = 4;
+
+        let depth = 1;
+        if (trophyCount >= 15) {
+            depth = 4;
+        } else if (trophyCount >= 10) {
+            depth = 3;
+        } else if (trophyCount >= 5) {
+            depth = 2;
+        }
+
         const moveCol = findBestMoveWithMinimax(depth);
         const row = getNextAvailableRow(moveCol);
         dropPiece(row, moveCol, currentPlayer);
@@ -95,7 +112,9 @@ document.addEventListener('DOMContentLoaded', () => {
         let bestScore = -Infinity;
         let bestCol = -1;
         const validLocations = getValidLocations();
-        for (const col of validLocations) {
+        const shuffledLocations = shuffleArray(validLocations);
+
+        for (const col of shuffledLocations) {
             const row = getNextAvailableRow(col);
             const tempBoard = board.map(r => r.slice());
             tempBoard[row][col] = AI_PLAYER;
@@ -106,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         if (bestCol === -1) {
-            bestCol = validLocations[Math.floor(Math.random() * validLocations.length)];
+            bestCol = validLocations[0];
         }
         return bestCol;
     }

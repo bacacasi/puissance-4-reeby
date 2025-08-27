@@ -10,17 +10,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const rows = 6;
     const cols = 7;
     let board = [];
-    let currentPlayer = 1; // 1 for player, 2 for AI
+    let currentPlayer = 1;
+    const AI_PLAYER = 2;
+    const HUMAN_PLAYER = 1;
     let gameOver = false;
     let trophyCount = 0;
-
-    function shuffleArray(array) {
-        for (let i = array.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [array[i], array[j]] = [array[j], array[i]];
-        }
-        return array;
-    }
 
     function updateTrophyDisplay() {
         trophyCounter.textContent = `🏆 ${trophyCount}`;
@@ -37,9 +31,9 @@ document.addEventListener('DOMContentLoaded', () => {
             for (let col = 0; col < cols; col++) {
                 const cell = document.querySelector(`[data-row='${row}'][data-col='${col}']`);
                 cell.classList.remove('player1', 'player2');
-                if (board[row][col] === 1) {
+                if (board[row][col] === HUMAN_PLAYER) {
                     cell.classList.add('player1');
-                } else if (board[row][col] === 2) {
+                } else if (board[row][col] === AI_PLAYER) {
                     cell.classList.add('player2');
                 }
             }
@@ -61,13 +55,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleCellClick(col) {
-        if (gameOver || currentPlayer !== 1) return;
-
+        if (gameOver || currentPlayer !== HUMAN_PLAYER) return;
         const row = getNextAvailableRow(col);
-        if (row === -1) return; // Column is full
-
+        if (row === -1) return;
         dropPiece(row, col, currentPlayer);
-
         if (checkWin(currentPlayer)) {
             endGame(`Vous avez gagné !`);
             trophyCount++;
@@ -76,121 +67,14 @@ document.addEventListener('DOMContentLoaded', () => {
             endGame("Match nul !");
         } else {
             switchPlayer();
-            setTimeout(aiMove, 500);
+            setTimeout(aiMove, 100);
         }
-    }
-
-    function findBestMove(player) {
-        for (let col = 0; col < cols; col++) {
-            const row = getNextAvailableRow(col);
-            if (row !== -1) {
-                board[row][col] = player;
-                if (checkWin(player)) {
-                    board[row][col] = 0;
-                    return col;
-                }
-                board[row][col] = 0;
-            }
-        }
-        return -1;
-    }
-
-    function findSetupMove(player) {
-        for (let col = 0; col < cols; col++) {
-            const row = getNextAvailableRow(col);
-            if (row !== -1) {
-                board[row][col] = player;
-                if (isCreatingThreat(row, col, player)) {
-                    board[row][col] = 0;
-                    return col;
-                }
-                board[row][col] = 0;
-            }
-        }
-        return -1;
-    }
-
-    function isCreatingThreat(r, c, player) {
-        // Horizontal
-        for (let i = 0; i <= 3; i++) {
-            const C = c - i;
-            if (C >= 0 && C <= cols - 4) {
-                if (board[r][C] === player && board[r][C+1] === player && board[r][C+2] === player) return true;
-            }
-        }
-        // Vertical
-        if (r <= rows - 3) {
-            if (board[r][c] === player && board[r+1][c] === player && board[r+2][c] === player) return true;
-        }
-        // Diagonal Down-Right
-        for (let i = 0; i <= 3; i++) {
-            const R = r - i, C = c - i;
-            if (R >= 0 && R <= rows - 4 && C >= 0 && C <= cols - 4) {
-                if (board[R][C] === player && board[R+1][C+1] === player && board[R+2][C+2] === player) return true;
-            }
-        }
-        // Diagonal Up-Right
-        for (let i = 0; i <= 3; i++) {
-            const R = r + i, C = c - i;
-            if (R >= 3 && R < rows && C >= 0 && C <= cols - 4) {
-                if (board[R][C] === player && board[R-1][C+1] === player && board[R-2][C+2] === player) return true;
-            }
-        }
-        return false;
     }
 
     function aiMove() {
-        if (gameOver || currentPlayer !== 2) return;
-
-        let moveCol;
-        const aiLevel = trophyCount;
-
-        // Level 1+: Offensive move (Win)
-        if (aiLevel >= 1) {
-            const winningMove = findBestMove(2);
-            if (winningMove !== -1) {
-                moveCol = winningMove;
-            }
-        }
-
-        // Level 2+: Defensive move (Block)
-        if (moveCol === undefined && aiLevel >= 2) {
-            const blockingMove = findBestMove(1);
-            if (blockingMove !== -1) {
-                moveCol = blockingMove;
-            }
-        }
-
-        // Level 15+: Setup move (Create a threat)
-        if (moveCol === undefined && aiLevel >= 15) {
-            const setupMove = findSetupMove(2);
-            if (setupMove !== -1) {
-                moveCol = setupMove;
-            }
-        }
-
-        // Level 10+: Strategic move (Center preference)
-        if (moveCol === undefined && aiLevel >= 10) {
-            const centerCols = shuffleArray([3, 4, 2, 5, 1, 6, 0]);
-            for (const col of centerCols) {
-                if (getNextAvailableRow(col) !== -1) {
-                    moveCol = col;
-                    break;
-                }
-            }
-        }
-
-        // Level 0 or no other move found: Random move
-        if (moveCol === undefined) {
-            let availableCols = [];
-            for (let col = 0; col < cols; col++) {
-                if (getNextAvailableRow(col) !== -1) {
-                    availableCols.push(col);
-                }
-            }
-            moveCol = availableCols[Math.floor(Math.random() * availableCols.length)];
-        }
-
+        if (gameOver || currentPlayer !== AI_PLAYER) return;
+        const depth = 4; // Set a fixed depth for the powerful AI
+        const moveCol = findBestMoveWithMinimax(depth);
         const row = getNextAvailableRow(moveCol);
         dropPiece(row, moveCol, currentPlayer);
 
@@ -205,69 +89,159 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function getNextAvailableRow(col) {
-        for (let row = rows - 1; row >= 0; row--) {
-            if (board[row][col] === 0) {
-                return row;
+    function findBestMoveWithMinimax(depth) {
+        let bestScore = -Infinity;
+        let bestCol = -1;
+        const validLocations = getValidLocations();
+        for (const col of validLocations) {
+            const row = getNextAvailableRow(col);
+            const tempBoard = board.map(r => r.slice());
+            tempBoard[row][col] = AI_PLAYER;
+            const score = minimax(tempBoard, depth - 1, -Infinity, Infinity, false);
+            if (score > bestScore) {
+                bestScore = score;
+                bestCol = col;
             }
+        }
+        if (bestCol === -1) {
+            bestCol = validLocations[Math.floor(Math.random() * validLocations.length)];
+        }
+        return bestCol;
+    }
+
+    function minimax(currentBoard, depth, alpha, beta, isMaximizing) {
+        if (depth === 0 || isTerminalNode(currentBoard)) {
+            return scorePosition(currentBoard, AI_PLAYER);
+        }
+        const validLocations = getValidLocations(currentBoard);
+        if (isMaximizing) {
+            let value = -Infinity;
+            for (const col of validLocations) {
+                const row = getNextAvailableRowInBoard(col, currentBoard);
+                let b_copy = currentBoard.map(r => r.slice());
+                b_copy[row][col] = AI_PLAYER;
+                let new_score = minimax(b_copy, depth - 1, alpha, beta, false);
+                value = Math.max(value, new_score);
+                alpha = Math.max(alpha, value);
+                if (alpha >= beta) break;
+            }
+            return value;
+        } else {
+            let value = Infinity;
+            for (const col of validLocations) {
+                const row = getNextAvailableRowInBoard(col, currentBoard);
+                let b_copy = currentBoard.map(r => r.slice());
+                b_copy[row][col] = HUMAN_PLAYER;
+                let new_score = minimax(b_copy, depth - 1, alpha, beta, true);
+                value = Math.min(value, new_score);
+                beta = Math.min(beta, value);
+                if (alpha >= beta) break;
+            }
+            return value;
+        }
+    }
+
+    function scorePosition(b, player) {
+        let score = 0;
+        let center_count = 0;
+        for(let r = 0; r < rows; r++){
+            if(b[r][Math.floor(cols/2)] == player) center_count++;
+        }
+        score += center_count * 3;
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c <= cols - 4; c++) {
+                score += evaluateWindow(b[r].slice(c, c+4), player);
+            }
+        }
+        for (let c = 0; c < cols; c++) {
+            let window = [];
+            for (let r=0; r<rows; r++) window.push(b[r][c]);
+            for (let r = 0; r <= rows - 4; r++) {
+                score += evaluateWindow(window.slice(r, r+4), player);
+            }
+        }
+        for (let r = 0; r <= rows - 4; r++) {
+            for (let c = 0; c <= cols - 4; c++) {
+                let window = [b[r][c], b[r+1][c+1], b[r+2][c+2], b[r+3][c+3]];
+                score += evaluateWindow(window, player);
+            }
+        }
+        for (let r = 3; r < rows; r++) {
+            for (let c = 0; c <= cols - 4; c++) {
+                let window = [b[r][c], b[r-1][c+1], b[r-2][c+2], b[r-3][c+3]];
+                score += evaluateWindow(window, player);
+            }
+        }
+        return score;
+    }
+
+    function evaluateWindow(window, player) {
+        let score = 0;
+        const opp_player = player == HUMAN_PLAYER ? AI_PLAYER : HUMAN_PLAYER;
+        const playerCount = window.filter(p => p === player).length;
+        const oppPlayerCount = window.filter(p => p === opp_player).length;
+        const emptyCount = window.filter(p => p === 0).length;
+        if (playerCount === 4) score += 100;
+        else if (playerCount === 3 && emptyCount === 1) score += 5;
+        else if (playerCount === 2 && emptyCount === 2) score += 2;
+        if (oppPlayerCount === 3 && emptyCount === 1) score -= 4;
+        return score;
+    }
+
+    function isTerminalNode(b) {
+        return checkWinInBoard(b, HUMAN_PLAYER) || checkWinInBoard(b, AI_PLAYER) || getValidLocations(b).length === 0;
+    }
+
+    function getValidLocations(b = board) {
+        const valid = [];
+        for (let col = 0; col < cols; col++) {
+            if (getNextAvailableRowInBoard(col, b) !== -1) valid.push(col);
+        }
+        return valid;
+    }
+
+    function getNextAvailableRowInBoard(col, b) {
+        for (let r = rows - 1; r >= 0; r--) {
+            if (b[r][col] === 0) return r;
         }
         return -1;
     }
 
-    function dropPiece(row, col, player) {
-        board[row][col] = player;
-        redrawBoard();
-    }
-
-    function switchPlayer() {
-        currentPlayer = currentPlayer === 1 ? 2 : 1;
-        message.textContent = currentPlayer === 1 ? "Votre tour" : "Tour de l'IA";
-    }
-
-    function checkWin(player) {
-        // Horizontal
+    function checkWinInBoard(b, player) {
         for (let r = 0; r < rows; r++) {
             for (let c = 0; c <= cols - 4; c++) {
-                if (board[r][c] === player && board[r][c+1] === player && board[r][c+2] === player && board[r][c+3] === player) return true;
+                if (b[r][c] === player && b[r][c+1] === player && b[r][c+2] === player && b[r][c+3] === player) return true;
             }
         }
-        // Vertical
         for (let r = 0; r <= rows - 4; r++) {
             for (let c = 0; c < cols; c++) {
-                if (board[r][c] === player && board[r+1][c] === player && board[r+2][c] === player && board[r+3][c] === player) return true;
+                if (b[r][c] === player && b[r+1][c] === player && b[r+2][c] === player && b[r+3][c] === player) return true;
             }
         }
-        // Diagonal Down-Right
         for (let r = 0; r <= rows - 4; r++) {
             for (let c = 0; c <= cols - 4; c++) {
-                if (board[r][c] === player && board[r+1][c+1] === player && board[r+2][c+2] === player && board[r+3][c+3] === player) return true;
+                if (b[r][c] === player && b[r+1][c+1] === player && b[r+2][c+2] === player && b[r+3][c+3] === player) return true;
             }
         }
-        // Diagonal Up-Right
         for (let r = 3; r < rows; r++) {
             for (let c = 0; c <= cols - 4; c++) {
-                if (board[r][c] === player && board[r-1][c+1] === player && board[r-2][c+2] === player && board[r-3][c+3] === player) return true;
+                if (b[r][c] === player && b[r-1][c+1] === player && b[r-2][c+2] === player && b[r-3][c+3] === player) return true;
             }
         }
         return false;
     }
 
-    function checkDraw() {
-        return board.every(row => row.every(cell => cell !== 0));
-    }
-
-    function endGame(msg) {
-        gameOver = true;
-        message.textContent = msg;
-    }
-
-    function resetBoard() {
-        board = Array(rows).fill(null).map(() => Array(cols).fill(0));
-    }
+    function getNextAvailableRow(col) { return getNextAvailableRowInBoard(col, board); }
+    function dropPiece(row, col, player) { board[row][col] = player; redrawBoard(); }
+    function switchPlayer() { currentPlayer = (currentPlayer === HUMAN_PLAYER) ? AI_PLAYER : HUMAN_PLAYER; message.textContent = currentPlayer === 1 ? "Votre tour" : "Tour de l'IA"; }
+    function checkWin(player) { return checkWinInBoard(board, player); }
+    function checkDraw() { return getValidLocations().length === 0; }
+    function endGame(msg) { gameOver = true; message.textContent = msg; }
+    function resetBoard() { board = Array(rows).fill(null).map(() => Array(cols).fill(0)); }
 
     function restartGame() {
         gameOver = false;
-        currentPlayer = 1;
+        currentPlayer = HUMAN_PLAYER;
         message.textContent = "Votre tour";
         resetBoard();
         redrawBoard();
@@ -279,7 +253,6 @@ document.addEventListener('DOMContentLoaded', () => {
         restartGame();
     }
 
-    // Initial load
     createBoard();
     updateTrophyDisplay();
     playButton.addEventListener('click', startGame);

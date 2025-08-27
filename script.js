@@ -14,6 +14,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let gameOver = false;
     let trophyCount = 0;
 
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
     function updateTrophyDisplay() {
         trophyCounter.textContent = `🏆 ${trophyCount}`;
     }
@@ -163,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Level 10+: Strategic move (Center preference)
         if (moveCol === undefined && aiLevel >= 10) {
-            const centerCols = [3, 4, 2, 5, 1, 6, 0];
+            const centerCols = shuffleArray([3, 4, 2, 5, 1, 6, 0]);
             for (const col of centerCols) {
                 if (getNextAvailableRow(col) !== -1) {
                     moveCol = col;

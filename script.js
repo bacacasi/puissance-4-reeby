@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const gameBoard = document.getElementById('game-board');
     const message = document.getElementById('message');
     const restartButton = document.getElementById('restart-button');
+    const backToMenuButton = document.getElementById('back-to-menu-button');
     const trophyCounter = document.getElementById('trophy-counter');
 
     const rows = 6;
@@ -21,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showMainMenu() {
+        gameOver = true; // Ensure no more moves can be made
         updateTrophyDisplay();
         gameContainer.classList.add('hidden');
         mainMenu.classList.remove('hidden');
@@ -73,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function aiMove() {
         if (gameOver || currentPlayer !== AI_PLAYER) return;
-        const depth = 4; // Set a fixed depth for the powerful AI
+        const depth = 4;
         const moveCol = findBestMoveWithMinimax(depth);
         const row = getNextAvailableRow(moveCol);
         dropPiece(row, moveCol, currentPlayer);
@@ -181,10 +183,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const playerCount = window.filter(p => p === player).length;
         const oppPlayerCount = window.filter(p => p === opp_player).length;
         const emptyCount = window.filter(p => p === 0).length;
-        if (playerCount === 4) score += 100;
-        else if (playerCount === 3 && emptyCount === 1) score += 5;
-        else if (playerCount === 2 && emptyCount === 2) score += 2;
-        if (oppPlayerCount === 3 && emptyCount === 1) score -= 4;
+
+        if (playerCount === 4) {
+            score += 1000;
+        } else if (playerCount === 3 && emptyCount === 1) {
+            score += 10;
+        } else if (playerCount === 2 && emptyCount === 2) {
+            score += 2;
+        }
+
+        if (oppPlayerCount === 3 && emptyCount === 1) {
+            score -= 500;
+        } else if (oppPlayerCount === 2 && emptyCount === 2) {
+            score -= 5;
+        }
+
         return score;
     }
 
@@ -257,4 +270,5 @@ document.addEventListener('DOMContentLoaded', () => {
     updateTrophyDisplay();
     playButton.addEventListener('click', startGame);
     restartButton.addEventListener('click', restartGame);
+    backToMenuButton.addEventListener('click', showMainMenu);
 });

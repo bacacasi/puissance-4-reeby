@@ -33,7 +33,7 @@ h1 {
     font-size: 1.5em;
     font-weight: bold;
     color: #fff;
-    background-color: #28a745; /* A green color for play */
+    background-color: #28a745;
     border: none;
     border-radius: 8px;
     cursor: pointer;
@@ -53,7 +53,7 @@ h1 {
     padding: 10px;
     border-radius: 10px;
     box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
-    margin: 0 auto; /* Center the board in its container */
+    margin: 0 auto;
 }
 
 .cell {
@@ -87,19 +87,36 @@ h1 {
     height: 30px;
 }
 
-#restart-button {
+.buttons-container {
     margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+#restart-button, #back-to-menu-button {
     padding: 12px 25px;
     font-size: 1.1em;
     font-weight: bold;
     color: #fff;
-    background-color: #0077be;
     border: none;
     border-radius: 5px;
     cursor: pointer;
     transition: background-color 0.3s ease;
 }
 
+#restart-button {
+    background-color: #0077be;
+}
+
 #restart-button:hover {
     background-color: #005a8d;
+}
+
+#back-to-menu-button {
+    background-color: #6c757d;
+}
+
+#back-to-menu-button:hover {
+    background-color: #5a6268;
 }

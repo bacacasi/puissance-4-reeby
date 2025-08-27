@@ -120,3 +120,8 @@ h1 {
 #back-to-menu-button:hover {
     background-color: #5a6268;
 }
+
+.winning-piece {
+    border: 5px solid #28a745; /* Green border for winning pieces */
+    box-sizing: border-box; /* Ensures border is inside the circle */
+}

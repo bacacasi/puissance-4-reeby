@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let gameOver = false;
     let trophyCount = 0;
 
+    // --- Utility Functions ---
     function shuffleArray(array) {
         for (let i = array.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -25,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return array;
     }
 
+    // --- UI Update Functions ---
     function updateTrophyDisplay() {
         trophyCounter.textContent = `🏆 ${trophyCount}`;
     }
@@ -36,20 +38,24 @@ document.addEventListener('DOMContentLoaded', () => {
         mainMenu.classList.remove('hidden');
     }
 
-    function redrawBoard() {
+    function redrawBoard(winningLine = []) {
         for (let row = 0; row < rows; row++) {
             for (let col = 0; col < cols; col++) {
                 const cell = document.querySelector(`[data-row='${row}'][data-col='${col}']`);
-                cell.classList.remove('player1', 'player2');
+                cell.classList.remove('player1', 'player2', 'winning-piece');
                 if (board[row][col] === HUMAN_PLAYER) {
                     cell.classList.add('player1');
                 } else if (board[row][col] === AI_PLAYER) {
                     cell.classList.add('player2');
                 }
+                if (winningLine.some(p => p.r === row && p.c === col)) {
+                    cell.classList.add('winning-piece');
+                }
             }
         }
     }
 
+    // --- Game Setup ---
     function createBoard() {
         gameBoard.innerHTML = '';
         for (let row = 0; row < rows; row++) {
@@ -64,15 +70,94 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function startGame() {
+        board = Array(rows).fill(null).map(() => Array(cols).fill(0));
+        currentPlayer = HUMAN_PLAYER;
+        gameOver = false;
+        message.textContent = '';
+        createBoard();
+        redrawBoard();
+        mainMenu.classList.add('hidden');
+        gameContainer.classList.remove('hidden');
+    }
+
+    // --- Game Logic ---
+    function getNextAvailableRow(col) {
+        for (let row = rows - 1; row >= 0; row--) {
+            if (board[row][col] === 0) {
+                return row;
+            }
+        }
+        return -1; // Column is full
+    }
+
+    function dropPiece(row, col, player) {
+        board[row][col] = player;
+        redrawBoard();
+    }
+
+    function switchPlayer() {
+        currentPlayer = (currentPlayer === HUMAN_PLAYER) ? AI_PLAYER : HUMAN_PLAYER;
+    }
+
+    function endGame(endMessage, winningLine = []) {
+        message.textContent = endMessage;
+        gameOver = true;
+        redrawBoard(winningLine);
+        setTimeout(showMainMenu, 2000);
+    }
+
+    function checkDraw() {
+        return board[0].every(cell => cell !== 0);
+    }
+
+    function checkWin(player) {
+        // Horizontal
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c <= cols - 4; c++) {
+                if (board[r][c] === player && board[r][c+1] === player && board[r][c+2] === player && board[r][c+3] === player) {
+                    return [{r,c},{r,c:c+1},{r,c:c+2},{r,c:c+3}];
+                }
+            }
+        }
+        // Vertical
+        for (let r = 0; r <= rows - 4; r++) {
+            for (let c = 0; c < cols; c++) {
+                if (board[r][c] === player && board[r+1][c] === player && board[r+2][c] === player && board[r+3][c] === player) {
+                    return [{r,c},{r:r+1,c},{r:r+2,c},{r:r+3,c}];
+                }
+            }
+        }
+        // Diagonal Down-Right
+        for (let r = 0; r <= rows - 4; r++) {
+            for (let c = 0; c <= cols - 4; c++) {
+                if (board[r][c] === player && board[r+1][c+1] === player && board[r+2][c+2] === player && board[r+3][c+3] === player) {
+                    return [{r,c},{r:r+1,c:c+1},{r:r+2,c:c+2},{r:r+3,c:c+3}];
+                }
+            }
+        }
+        // Diagonal Up-Right
+        for (let r = 3; r < rows; r++) {
+            for (let c = 0; c <= cols - 4; c++) {
+                if (board[r][c] === player && board[r-1][c+1] === player && board[r-2][c+2] === player && board[r-3][c+3] === player) {
+                    return [{r,c},{r:r-1,c:c+1},{r:r-2,c:c+2},{r:r-3,c:c+3}];
+                }
+            }
+        }
+        return null;
+    }
+
+    // --- Player and AI Moves ---
     function handleCellClick(col) {
         if (gameOver || currentPlayer !== HUMAN_PLAYER) return;
         const row = getNextAvailableRow(col);
         if (row === -1) return;
         dropPiece(row, col, currentPlayer);
-        if (checkWin(currentPlayer)) {
-            endGame(`Vous avez gagné !`);
+
+        const winningLine = checkWin(currentPlayer);
+        if (winningLine) {
             trophyCount++;
-            setTimeout(showMainMenu, 2000);
+            endGame(`Vous avez gagné !`, winningLine);
         } else if (checkDraw()) {
             endGame("Match nul !");
         } else {
@@ -85,233 +170,190 @@ document.addEventListener('DOMContentLoaded', () => {
         if (gameOver || currentPlayer !== AI_PLAYER) return;
 
         let moveCol;
-
-        if (trophyCount >= 15) {
-            const depth = (trophyCount >= 25) ? 3 : ((trophyCount >= 20) ? 2 : 1);
+        if (trophyCount < 5) { // Niveau 1: Aléatoire
+            moveCol = findRandomMove();
+        } else if (trophyCount < 10) { // Niveau 2: Heuristique simple
+            moveCol = findBestMoveWithHeuristics();
+        } else { // Niveau 3: Minimax
+            const depth = getMinimaxDepth();
             moveCol = findBestMoveWithMinimax(depth);
-        } else {
-            const winningMove = (trophyCount >= 5) ? findOneMoveWin(AI_PLAYER) : -1;
-            const blockingMove = (trophyCount >= 10) ? findOneMoveWin(HUMAN_PLAYER) : -1;
-
-            if (winningMove !== -1) {
-                moveCol = winningMove;
-            } else if (blockingMove !== -1) {
-                moveCol = blockingMove;
-            } else {
-                let availableCols = getValidLocations();
-                moveCol = availableCols[Math.floor(Math.random() * availableCols.length)];
-            }
         }
 
         const row = getNextAvailableRow(moveCol);
-        dropPiece(row, moveCol, currentPlayer);
-
-        if (checkWin(currentPlayer)) {
-            endGame(`L'IA a gagné !`);
-            trophyCount = Math.max(0, trophyCount - 1);
-            setTimeout(showMainMenu, 2000);
-        } else if (checkDraw()) {
-            endGame("Match nul !");
-        } else {
-            switchPlayer();
+        if (row !== -1) {
+            dropPiece(row, moveCol, currentPlayer);
+            const winningLine = checkWin(currentPlayer);
+            if (winningLine) {
+                trophyCount = Math.max(0, trophyCount - 1);
+                endGame(`L'IA a gagné !`, winningLine);
+            } else if (checkDraw()) {
+                endGame("Match nul !");
+            } else {
+                switchPlayer();
+            }
         }
     }
 
-    function findOneMoveWin(player) {
-        for (let col = 0; col < cols; col++) {
-            const row = getNextAvailableRow(col);
-            if (row !== -1) {
-                board[row][col] = player;
-                if (checkWin(player)) {
-                    board[row][col] = 0;
-                    return col;
-                }
-                board[row][col] = 0;
+    function getMinimaxDepth() {
+        if (trophyCount >= 25) return 5;
+        if (trophyCount >= 20) return 4;
+        if (trophyCount >= 15) return 3;
+        return 2; // Default for 10-14 trophies
+    }
+
+    // --- AI Brains ---
+    function findRandomMove() {
+        let validMoves = [];
+        for (let c = 0; c < cols; c++) {
+            if (board[0][c] === 0) {
+                validMoves.push(c);
             }
         }
-        return -1;
+        return validMoves[Math.floor(Math.random() * validMoves.length)];
+    }
+
+    function findBestMoveWithHeuristics() {
+        // 1. Check for winning move
+        for (let c = 0; c < cols; c++) {
+            const r = getNextAvailableRow(c);
+            if (r !== -1) {
+                board[r][c] = AI_PLAYER;
+                if (checkWin(AI_PLAYER)) {
+                    board[r][c] = 0; // backtrack
+                    return c;
+                }
+                board[r][c] = 0; // backtrack
+            }
+        }
+        // 2. Check for blocking move
+        for (let c = 0; c < cols; c++) {
+            const r = getNextAvailableRow(c);
+            if (r !== -1) {
+                board[r][c] = HUMAN_PLAYER;
+                if (checkWin(HUMAN_PLAYER)) {
+                    board[r][c] = 0; // backtrack
+                    return c;
+                }
+                board[r][c] = 0; // backtrack
+            }
+        }
+        // 3. Prefer center
+        const preferredCols = shuffleArray([3, 4, 2, 5, 1, 6, 0]);
+        for (const c of preferredCols) {
+            if (getNextAvailableRow(c) !== -1) {
+                return c;
+            }
+        }
+        return findRandomMove(); // Fallback
     }
 
     function findBestMoveWithMinimax(depth) {
         let bestScore = -Infinity;
-        let bestCol = -1;
-        const validLocations = getValidLocations();
-        const shuffledLocations = shuffleArray(validLocations);
+        let bestMove = -1;
+        const validMoves = shuffleArray([...Array(cols).keys()].filter(c => getNextAvailableRow(c) !== -1));
 
-        for (const col of shuffledLocations) {
+        for (const col of validMoves) {
             const row = getNextAvailableRow(col);
-            const tempBoard = board.map(r => r.slice());
-            tempBoard[row][col] = AI_PLAYER;
-            const score = minimax(tempBoard, depth, -Infinity, Infinity, false);
+            board[row][col] = AI_PLAYER;
+            let score = minimax(depth - 1, false, -Infinity, Infinity);
+            board[row][col] = 0; // backtrack
             if (score > bestScore) {
                 bestScore = score;
-                bestCol = col;
+                bestMove = col;
             }
         }
-        if (bestCol === -1) {
-            bestCol = validLocations[0];
-        }
-        return bestCol;
+        return bestMove !== -1 ? bestMove : findRandomMove();
     }
 
-    function minimax(currentBoard, depth, alpha, beta, isMaximizing) {
-        if (depth === 0 || isTerminalNode(currentBoard)) {
-            return scorePosition(currentBoard, AI_PLAYER);
+    function minimax(depth, isMaximizing, alpha, beta) {
+        if (depth === 0 || checkWin(HUMAN_PLAYER) || checkWin(AI_PLAYER) || checkDraw()) {
+            return scorePosition(depth);
         }
-        const validLocations = getValidLocations(currentBoard);
+
         if (isMaximizing) {
-            let value = -Infinity;
-            for (const col of validLocations) {
-                const row = getNextAvailableRowInBoard(col, currentBoard);
-                let b_copy = currentBoard.map(r => r.slice());
-                b_copy[row][col] = AI_PLAYER;
-                let new_score = minimax(b_copy, depth - 1, alpha, beta, false);
-                value = Math.max(value, new_score);
-                alpha = Math.max(alpha, value);
-                if (alpha >= beta) break;
+            let maxScore = -Infinity;
+            const validMoves = shuffleArray([...Array(cols).keys()].filter(c => getNextAvailableRow(c) !== -1));
+            for (const col of validMoves) {
+                const row = getNextAvailableRow(col);
+                board[row][col] = AI_PLAYER;
+                let score = minimax(depth - 1, false, alpha, beta);
+                board[row][col] = 0;
+                maxScore = Math.max(maxScore, score);
+                alpha = Math.max(alpha, score);
+                if (beta <= alpha) break;
             }
-            return value;
-        } else {
-            let value = Infinity;
-            for (const col of validLocations) {
-                const row = getNextAvailableRowInBoard(col, currentBoard);
-                let b_copy = currentBoard.map(r => r.slice());
-                b_copy[row][col] = HUMAN_PLAYER;
-                let new_score = minimax(b_copy, depth - 1, alpha, beta, true);
-                value = Math.min(value, new_score);
-                beta = Math.min(beta, value);
-                if (alpha >= beta) break;
+            return maxScore;
+        } else { // Minimizing
+            let minScore = Infinity;
+            const validMoves = shuffleArray([...Array(cols).keys()].filter(c => getNextAvailableRow(c) !== -1));
+            for (const col of validMoves) {
+                const row = getNextAvailableRow(col);
+                board[row][col] = HUMAN_PLAYER;
+                let score = minimax(depth - 1, true, alpha, beta);
+                board[row][col] = 0;
+                minScore = Math.min(minScore, score);
+                beta = Math.min(beta, score);
+                if (beta <= alpha) break;
             }
-            return value;
+            return minScore;
         }
     }
 
-    function scorePosition(b, player) {
+    function scorePosition(depth) {
         let score = 0;
-        let center_count = 0;
-        for(let r = 0; r < rows; r++){
-            if(b[r][Math.floor(cols/2)] == player) center_count++;
+        // Center column preference
+        for(let r=0; r<rows; r++){
+            if(board[r][Math.floor(cols/2)] === AI_PLAYER) score += 3;
         }
-        score += center_count * 3;
+        // Score windows
+        score += scoreWindow(4, AI_PLAYER, 10000 + depth * 100);
+        score += scoreWindow(3, AI_PLAYER, 5 + depth * 2);
+        score += scoreWindow(2, AI_PLAYER, 2);
+        score -= scoreWindow(4, HUMAN_PLAYER, 10000 + depth * 100);
+        score -= scoreWindow(3, HUMAN_PLAYER, 50 + depth * 5); // Block more aggressively
+        return score;
+    }
+
+    function scoreWindow(length, player, points) {
+        let score = 0;
+        // Horizontal
         for (let r = 0; r < rows; r++) {
-            for (let c = 0; c <= cols - 4; c++) {
-                score += evaluateWindow(b[r].slice(c, c+4), player);
+            for (let c = 0; c <= cols - length; c++) {
+                const window = board[r].slice(c, c + length);
+                if (window.filter(p => p === player).length === length) score += points;
             }
         }
+        // Vertical
         for (let c = 0; c < cols; c++) {
-            let window = [];
-            for (let r=0; r<rows; r++) window.push(b[r][c]);
-            for (let r = 0; r <= rows - 4; r++) {
-                score += evaluateWindow(window.slice(r, r+4), player);
+            for (let r = 0; r <= rows - length; r++) {
+                const window = [];
+                for(let i=0; i<length; i++) window.push(board[r+i][c]);
+                if (window.filter(p => p === player).length === length) score += points;
             }
         }
-        for (let r = 0; r <= rows - 4; r++) {
-            for (let c = 0; c <= cols - 4; c++) {
-                let window = [b[r][c], b[r+1][c+1], b[r+2][c+2], b[r+3][c+3]];
-                score += evaluateWindow(window, player);
+        // Diagonals
+        for (let r = 0; r <= rows - length; r++) {
+            for (let c = 0; c <= cols - length; c++) {
+                const window = [];
+                for(let i=0; i<length; i++) window.push(board[r+i][c+i]);
+                if (window.filter(p => p === player).length === length) score += points;
             }
         }
-        for (let r = 3; r < rows; r++) {
-            for (let c = 0; c <= cols - 4; c++) {
-                let window = [b[r][c], b[r-1][c+1], b[r-2][c+2], b[r-3][c+3]];
-                score += evaluateWindow(window, player);
+        for (let r = length - 1; r < rows; r++) {
+            for (let c = 0; c <= cols - length; c++) {
+                const window = [];
+                for(let i=0; i<length; i++) window.push(board[r-i][c+i]);
+                if (window.filter(p => p === player).length === length) score += points;
             }
         }
         return score;
     }
 
-    function evaluateWindow(window, player) {
-        let score = 0;
-        const opp_player = player == HUMAN_PLAYER ? AI_PLAYER : HUMAN_PLAYER;
-        const playerCount = window.filter(p => p === player).length;
-        const oppPlayerCount = window.filter(p => p === opp_player).length;
-        const emptyCount = window.filter(p => p === 0).length;
-
-        if (playerCount === 4) {
-            score += 1000;
-        } else if (playerCount === 3 && emptyCount === 1) {
-            score += 5;
-        } else if (playerCount === 2 && emptyCount === 2) {
-            score += 2;
-        }
-
-        if (oppPlayerCount === 3 && emptyCount === 1) {
-            score -= 50;
-        } else if (oppPlayerCount === 2 && emptyCount === 2) {
-            score -= 5;
-        }
-
-        return score;
-    }
-
-    function isTerminalNode(b) {
-        return checkWinInBoard(b, HUMAN_PLAYER) || checkWinInBoard(b, AI_PLAYER) || getValidLocations(b).length === 0;
-    }
-
-    function getValidLocations(b = board) {
-        const valid = [];
-        for (let col = 0; col < cols; col++) {
-            if (getNextAvailableRowInBoard(col, b) !== -1) valid.push(col);
-        }
-        return valid;
-    }
-
-    function getNextAvailableRowInBoard(col, b) {
-        for (let r = rows - 1; r >= 0; r--) {
-            if (b[r][col] === 0) return r;
-        }
-        return -1;
-    }
-
-    function checkWinInBoard(b, player) {
-        for (let r = 0; r < rows; r++) {
-            for (let c = 0; c <= cols - 4; c++) {
-                if (b[r][c] === player && b[r][c+1] === player && b[r][c+2] === player && b[r][c+3] === player) return true;
-            }
-        }
-        for (let r = 0; r <= rows - 4; r++) {
-            for (let c = 0; c < cols; c++) {
-                if (b[r][c] === player && b[r+1][c] === player && b[r+2][c] === player && b[r+3][c] === player) return true;
-            }
-        }
-        for (let r = 0; r <= rows - 4; r++) {
-            for (let c = 0; c <= cols - 4; c++) {
-                if (b[r][c] === player && b[r+1][c+1] === player && b[r+2][c+2] === player && b[r+3][c+3] === player) return true;
-            }
-        }
-        for (let r = 3; r < rows; r++) {
-            for (let c = 0; c <= cols - 4; c++) {
-                if (b[r][c] === player && b[r-1][c+1] === player && b[r-2][c+2] === player && b[r-3][c+3] === player) return true;
-            }
-        }
-        return false;
-    }
-
-    function getNextAvailableRow(col) { return getNextAvailableRowInBoard(col, board); }
-    function dropPiece(row, col, player) { board[row][col] = player; redrawBoard(); }
-    function switchPlayer() { currentPlayer = (currentPlayer === HUMAN_PLAYER) ? AI_PLAYER : HUMAN_PLAYER; message.textContent = currentPlayer === 1 ? "Votre tour" : "Tour de l'IA"; }
-    function checkWin(player) { return checkWinInBoard(board, player); }
-    function checkDraw() { return getValidLocations().length === 0; }
-    function endGame(msg) { gameOver = true; message.textContent = msg; }
-    function resetBoard() { board = Array(rows).fill(null).map(() => Array(cols).fill(0)); }
-
-    function restartGame() {
-        gameOver = false;
-        currentPlayer = HUMAN_PLAYER;
-        message.textContent = "Votre tour";
-        resetBoard();
-        redrawBoard();
-    }
-
-    function startGame() {
-        mainMenu.classList.add('hidden');
-        gameContainer.classList.remove('hidden');
-        restartGame();
-    }
-
-    createBoard();
-    updateTrophyDisplay();
+    // --- Event Listeners ---
     playButton.addEventListener('click', startGame);
-    restartButton.addEventListener('click', restartGame);
+    restartButton.addEventListener('click', startGame);
     backToMenuButton.addEventListener('click', showMainMenu);
+
+    // --- Initial Call ---
+    showMainMenu();
 });

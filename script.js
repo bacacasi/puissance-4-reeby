@@ -170,13 +170,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (gameOver || currentPlayer !== AI_PLAYER) return;
 
         let moveCol;
-        if (trophyCount < 5) { // Niveau 1: Aléatoire
+        if (trophyCount <= 4) { // Niveau 0: Aléatoire
             moveCol = findRandomMove();
-        } else if (trophyCount < 10) { // Niveau 2: Heuristique simple
-            moveCol = findBestMoveWithHeuristics();
-        } else { // Niveau 3: Minimax
-            const depth = getMinimaxDepth();
-            moveCol = findBestMoveWithMinimax(depth);
+        } else if (trophyCount <= 9) { // Niveau 1: Offensif simple
+            moveCol = findBestMove_Lvl1();
+        } else if (trophyCount <= 14) { // Niveau 2: Offensif & Défensif
+            moveCol = findBestMove_Lvl2();
+        } else if (trophyCount <= 20) { // Niveau 3: Minimax (depth 1)
+            moveCol = findBestMoveWithMinimax(1);
+        } else if (trophyCount <= 28) { // Niveau 4: Minimax (depth 2)
+            moveCol = findBestMoveWithMinimax(2);
+        } else { // Niveau 5 (29+ trophées): Minimax (depth 3)
+            moveCol = findBestMoveWithMinimax(3);
         }
 
         const row = getNextAvailableRow(moveCol);
@@ -194,13 +199,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function getMinimaxDepth() {
-        if (trophyCount >= 25) return 5;
-        if (trophyCount >= 20) return 4;
-        if (trophyCount >= 15) return 3;
-        return 2; // Default for 10-14 trophies
-    }
-
     // --- AI Brains ---
     function findRandomMove() {
         let validMoves = [];
@@ -212,7 +210,24 @@ document.addEventListener('DOMContentLoaded', () => {
         return validMoves[Math.floor(Math.random() * validMoves.length)];
     }
 
-    function findBestMoveWithHeuristics() {
+    function findBestMove_Lvl1() {
+        // 1. Check for winning move
+        for (let c = 0; c < cols; c++) {
+            const r = getNextAvailableRow(c);
+            if (r !== -1) {
+                board[r][c] = AI_PLAYER;
+                if (checkWin(AI_PLAYER)) {
+                    board[r][c] = 0; // backtrack
+                    return c;
+                }
+                board[r][c] = 0; // backtrack
+            }
+        }
+        // 2. Fallback to random
+        return findRandomMove();
+    }
+
+    function findBestMove_Lvl2() {
         // 1. Check for winning move
         for (let c = 0; c < cols; c++) {
             const r = getNextAvailableRow(c);

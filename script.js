@@ -84,16 +84,25 @@ document.addEventListener('DOMContentLoaded', () => {
     function aiMove() {
         if (gameOver || currentPlayer !== AI_PLAYER) return;
 
-        let depth = 1;
-        if (trophyCount >= 20) {
-            depth = 4;
-        } else if (trophyCount >= 15) {
-            depth = 3;
-        } else if (trophyCount >= 10) {
-            depth = 2;
+        let moveCol;
+
+        if (trophyCount >= 15) {
+            const depth = (trophyCount >= 25) ? 3 : ((trophyCount >= 20) ? 2 : 1);
+            moveCol = findBestMoveWithMinimax(depth);
+        } else {
+            const winningMove = (trophyCount >= 5) ? findOneMoveWin(AI_PLAYER) : -1;
+            const blockingMove = (trophyCount >= 10) ? findOneMoveWin(HUMAN_PLAYER) : -1;
+
+            if (winningMove !== -1) {
+                moveCol = winningMove;
+            } else if (blockingMove !== -1) {
+                moveCol = blockingMove;
+            } else {
+                let availableCols = getValidLocations();
+                moveCol = availableCols[Math.floor(Math.random() * availableCols.length)];
+            }
         }
 
-        const moveCol = findBestMoveWithMinimax(depth);
         const row = getNextAvailableRow(moveCol);
         dropPiece(row, moveCol, currentPlayer);
 
@@ -108,6 +117,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function findOneMoveWin(player) {
+        for (let col = 0; col < cols; col++) {
+            const row = getNextAvailableRow(col);
+            if (row !== -1) {
+                board[row][col] = player;
+                if (checkWin(player)) {
+                    board[row][col] = 0;
+                    return col;
+                }
+                board[row][col] = 0;
+            }
+        }
+        return -1;
+    }
+
     function findBestMoveWithMinimax(depth) {
         let bestScore = -Infinity;
         let bestCol = -1;
@@ -118,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const row = getNextAvailableRow(col);
             const tempBoard = board.map(r => r.slice());
             tempBoard[row][col] = AI_PLAYER;
-            const score = minimax(tempBoard, depth - 1, -Infinity, Infinity, false);
+            const score = minimax(tempBoard, depth, -Infinity, Infinity, false);
             if (score > bestScore) {
                 bestScore = score;
                 bestCol = col;
@@ -206,13 +230,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (playerCount === 4) {
             score += 1000;
         } else if (playerCount === 3 && emptyCount === 1) {
-            score += 10;
+            score += 5;
         } else if (playerCount === 2 && emptyCount === 2) {
             score += 2;
         }
 
         if (oppPlayerCount === 3 && emptyCount === 1) {
-            score -= 500;
+            score -= 50;
         } else if (oppPlayerCount === 2 && emptyCount === 2) {
             score -= 5;
         }

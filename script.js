@@ -334,7 +334,7 @@ document.addEventListener('DOMContentLoaded', () => {
         score += scoreWindow(3, AI_PLAYER, 5 + depth * 2);
         score += scoreWindow(2, AI_PLAYER, 2);
         score -= scoreWindow(4, HUMAN_PLAYER, 10000 + depth * 100);
-        score -= scoreWindow(3, HUMAN_PLAYER, 50 + depth * 5); // Block more aggressively
+        score -= scoreWindow(3, HUMAN_PLAYER, 200 + depth * 10); // Block MUCH more aggressively
         return score;
     }
 

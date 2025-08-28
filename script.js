@@ -264,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function findBestMoveWithMinimax(depth) {
         let bestScore = -Infinity;
-        let bestMove = -1;
+        let bestMoves = [];
         const validMoves = shuffleArray([...Array(cols).keys()].filter(c => getNextAvailableRow(c) !== -1));
 
         for (const col of validMoves) {
@@ -272,12 +272,21 @@ document.addEventListener('DOMContentLoaded', () => {
             board[row][col] = AI_PLAYER;
             let score = minimax(depth - 1, false, -Infinity, Infinity);
             board[row][col] = 0; // backtrack
+
             if (score > bestScore) {
                 bestScore = score;
-                bestMove = col;
+                bestMoves = [col]; // New best score, start a new list of moves
+            } else if (score === bestScore) {
+                bestMoves.push(col); // Same best score, add to list
             }
         }
-        return bestMove !== -1 ? bestMove : findRandomMove();
+
+        if (bestMoves.length > 0) {
+            // Choose a random move from the best options
+            return bestMoves[Math.floor(Math.random() * bestMoves.length)];
+        }
+
+        return findRandomMove(); // Fallback if no moves found
     }
 
     function minimax(depth, isMaximizing, alpha, beta) {

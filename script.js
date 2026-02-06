@@ -170,18 +170,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (gameOver || currentPlayer !== AI_PLAYER) return;
 
         let moveCol;
-        if (trophyCount <= 4) { // Niveau 0: Aléatoire
+        if (trophyCount <= 2) { // Niveau 0: Aléatoire
             moveCol = findRandomMove();
-        } else if (trophyCount <= 9) { // Niveau 1: Offensif simple
+        } else if (trophyCount <= 5) { // Niveau 1: Offensif simple
             moveCol = findBestMove_Lvl1();
-        } else if (trophyCount <= 14) { // Niveau 2: Offensif & Défensif
+        } else if (trophyCount <= 8) { // Niveau 2: Offensif & Défensif
             moveCol = findBestMove_Lvl2();
-        } else if (trophyCount <= 20) { // Niveau 3: Minimax (depth 1)
-            moveCol = findBestMoveWithMinimax(1);
-        } else if (trophyCount <= 28) { // Niveau 4: Minimax (depth 2)
+        } else if (trophyCount <= 13) { // Niveau 3: Minimax (depth 2)
             moveCol = findBestMoveWithMinimax(2);
-        } else { // Niveau 5 (29+ trophées): Minimax (depth 3)
-            moveCol = findBestMoveWithMinimax(3);
+        } else if (trophyCount <= 17) { // Niveau 4: Minimax (depth 4)
+            moveCol = findBestMoveWithMinimax(4);
+        } else if (trophyCount <= 19) { // Niveau 5: Minimax (depth 5)
+            moveCol = findBestMoveWithMinimax(5);
+        } else { // Niveau 6 (20+ trophées): Minimax (depth 6)
+            moveCol = findBestMoveWithMinimax(6);
         }
 
         const row = getNextAvailableRow(moveCol);
@@ -326,50 +328,62 @@ document.addEventListener('DOMContentLoaded', () => {
     function scorePosition(depth) {
         let score = 0;
         // Center column preference
-        for(let r=0; r<rows; r++){
-            if(board[r][Math.floor(cols/2)] === AI_PLAYER) score += 3;
+        for (let r = 0; r < rows; r++) {
+            if (board[r][Math.floor(cols / 2)] === AI_PLAYER) score += 3;
         }
-        // Score windows
-        score += scoreWindow(4, AI_PLAYER, 10000 + depth * 100);
-        score += scoreWindow(3, AI_PLAYER, 5 + depth * 2);
-        score += scoreWindow(2, AI_PLAYER, 2);
-        score -= scoreWindow(4, HUMAN_PLAYER, 10000 + depth * 100);
-        score -= scoreWindow(3, HUMAN_PLAYER, 200 + depth * 10); // Block MUCH more aggressively
-        return score;
-    }
 
-    function scoreWindow(length, player, points) {
-        let score = 0;
         // Horizontal
         for (let r = 0; r < rows; r++) {
-            for (let c = 0; c <= cols - length; c++) {
-                const window = board[r].slice(c, c + length);
-                if (window.filter(p => p === player).length === length) score += points;
+            for (let c = 0; c <= cols - 4; c++) {
+                const window = [board[r][c], board[r][c + 1], board[r][c + 2], board[r][c + 3]];
+                score += evaluateWindow(window, AI_PLAYER);
             }
         }
         // Vertical
         for (let c = 0; c < cols; c++) {
-            for (let r = 0; r <= rows - length; r++) {
-                const window = [];
-                for(let i=0; i<length; i++) window.push(board[r+i][c]);
-                if (window.filter(p => p === player).length === length) score += points;
+            for (let r = 0; r <= rows - 4; r++) {
+                const window = [board[r][c], board[r + 1][c], board[r + 2][c], board[r + 3][c]];
+                score += evaluateWindow(window, AI_PLAYER);
             }
         }
-        // Diagonals
-        for (let r = 0; r <= rows - length; r++) {
-            for (let c = 0; c <= cols - length; c++) {
-                const window = [];
-                for(let i=0; i<length; i++) window.push(board[r+i][c+i]);
-                if (window.filter(p => p === player).length === length) score += points;
+        // Diagonal Down-Right
+        for (let r = 0; r <= rows - 4; r++) {
+            for (let c = 0; c <= cols - 4; c++) {
+                const window = [board[r][c], board[r + 1][c + 1], board[r + 2][c + 2], board[r + 3][c + 3]];
+                score += evaluateWindow(window, AI_PLAYER);
             }
         }
-        for (let r = length - 1; r < rows; r++) {
-            for (let c = 0; c <= cols - length; c++) {
-                const window = [];
-                for(let i=0; i<length; i++) window.push(board[r-i][c+i]);
-                if (window.filter(p => p === player).length === length) score += points;
+        // Diagonal Up-Right
+        for (let r = 3; r < rows; r++) {
+            for (let c = 0; c <= cols - 4; c++) {
+                const window = [board[r][c], board[r - 1][c + 1], board[r - 2][c + 2], board[r - 3][c + 3]];
+                score += evaluateWindow(window, AI_PLAYER);
             }
         }
+
+        return score;
+    }
+
+    function evaluateWindow(window, player) {
+        let score = 0;
+        const opponent = (player === AI_PLAYER) ? HUMAN_PLAYER : AI_PLAYER;
+
+        const playerCount = window.filter(cell => cell === player).length;
+        const emptyCount = window.filter(cell => cell === 0).length;
+        const opponentCount = window.filter(cell => cell === opponent).length;
+
+        if (playerCount === 4) {
+            score += 100000;
+        } else if (playerCount === 3 && emptyCount === 1) {
+            score += 500;
+        } else if (playerCount === 2 && emptyCount === 2) {
+            score += 50;
+        }
+
+        if (opponentCount === 3 && emptyCount === 1) {
+            score -= 800;
+        }
+
         return score;
     }
 
